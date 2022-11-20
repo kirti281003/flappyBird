@@ -1,39 +1,77 @@
-import Phaser from 'phaser';
+import BaseScene from "./BaseScene";
 
 const PIPES_TO_RENDER = 4;
 
-class PlayScene extends Phaser.Scene {
+class PlayScene extends BaseScene {
   constructor(config) {
-    super('PlayScene');
-    this.config = config;
+    super('PlayScene',config);
+   
     this.bird = null;
     this.pipes = null;
     this.pipeHorizontalDistance = 0;
-    this.pipeVerticalDistanceRange = [150, 250];
-    this.pipeHorizontalDistanceRange = [500, 550];
     this.flapVelocity = 300;
 
     this.score = 0;
     this.scoreText = '';
+    this.currentDifficulty = 'easy';
+    this.difficulties = {
+      'easy': {
+        pipeHorizontalDistanceRange: [400, 450],
+        pipeVerticalDistanceRange: [200, 250]
+      },
+      'normal': {
+        pipeHorizontalDistanceRange: [280, 330],
+        pipeVerticalDistanceRange: [140, 190]
+      },
+      'hard': {
+        pipeHorizontalDistanceRange: [250, 310],
+        pipeVerticalDistanceRange: [120, 150]
+      }
+    }
   }
 
-  preload() {
-    this.load.image('sky', 'assets/sky.png');
-    this.load.image('bird', 'assets/bird.png');
-    this.load.image('pipe', 'assets/pipe.png');
-  }
   create() {
-    this.createBG();
+    this.currentDifficulty = 'easy';
+    super.create();
     this.createBird();
     this.createPipes();
     this.createColliders();
     this.createScore();
+    this.createPause();
     this.handleInputs();
+    this.listenToEvents();
+    
+   
+
+
+    this.bird.play('fly');
   }
 
   update() {
     this.checkGameStatus();
     this.recyclePipes();
+  }
+  listenToEvents()
+  {if(this.pauseEvent){return;}
+    this.pauseEvent=this.events.on('resume',()=>
+    {this.initialTime=3;
+      this.countDownText=this.add.text(...this.screenCenter,'Fly in:'+this.initialTime,this.fontOptions).setOrigin(0.5);
+      this.timedEvent=this.time.addEvent({
+        delay:1000,
+        callback:this.countDown,
+        callbackScope: this,
+        loop: true
+      })
+    })
+  }
+  countDown() {
+    this.initialTime--;
+    this.countDownText.setText('Fly in: ' + this.initialTime);
+    if (this.initialTime <= 0) {
+      this.countDownText.setText('');
+      this.physics.resume();
+      this.timedEvent.remove();
+    }
   }
   createBG() {
     this.add.image(0, 0, 'sky').setOrigin(0);
@@ -62,9 +100,22 @@ class PlayScene extends Phaser.Scene {
 
   createScore() {
     this.score = 0;
+    const bestScore = localStorage.getItem('bestScore');
     this.scoreText = this.add.text(16, 16, `Score: ${0}`, { fontSize: '32px', fill: '#000'});
+    this.add.text(16, 52, `Best score: ${bestScore || 0}`, { fontSize: '18px', fill: '#000'});
   }
+  createPause() {
+    const pauseButton=this.add.image(this.config.width - 10, this.config.height -10, 'pause')
+    .setInteractive()
+      .setScale(3)
+      .setOrigin(1)
+      pauseButton.on('pointerdown',() =>
+      {this.physics.pause();
+        this.scene.pause();
+        this.scene.launch('PauseScene');
 
+      })
+  }
   handleInputs() {
     this.input.on('pointerdown', this.flap, this);
     this.input.keyboard.on('keydown_SPACE', this.flap, this);
@@ -75,10 +126,11 @@ class PlayScene extends Phaser.Scene {
     }
   }
   placePipe(uPipe, lPipe) {
+    const difficulty = this.difficulties[this.currentDifficulty];
     const rightMostX = this.getRightMostPipe();
-    const pipeVerticalDistance = Phaser.Math.Between(...this.pipeVerticalDistanceRange);
+    const pipeVerticalDistance = Phaser.Math.Between(...difficulty.pipeVerticalDistanceRange);
     const pipeVerticalPosition = Phaser.Math.Between(0 + 20, this.config.height - 20 - pipeVerticalDistance);
-    const pipeHorizontalDistance = Phaser.Math.Between(...this.pipeHorizontalDistanceRange);
+    const pipeHorizontalDistance = Phaser.Math.Between(...difficulty.pipeHorizontalDistanceRange);
     uPipe.x = rightMostX + pipeHorizontalDistance;
     uPipe.y = pipeVerticalPosition;
     lPipe.x = uPipe.x;
@@ -92,6 +144,8 @@ class PlayScene extends Phaser.Scene {
         if (tempPipes.length === 2) {
           this.placePipe(...tempPipes);
           this.increaseScore();
+          this.saveBestScore();
+          this.increaseDifficulty();
         }
       }
     })
@@ -105,9 +159,11 @@ class PlayScene extends Phaser.Scene {
   }
   gameOver() {
     this.physics.pause();
+    this.saveBestScore();
+
     this.bird.setTint(0xEE4824);
     this.time.addEvent({
-      delay: 1000,
+      delay: 3000,
       callback: () => {
         this.scene.restart();
       },
@@ -122,6 +178,24 @@ class PlayScene extends Phaser.Scene {
     this.score++;
     this.scoreText.setText(`Score: ${this.score}`)
   }
+
+saveBestScore() {
+  const bestScoreText = localStorage.getItem('bestScore');
+  const bestScore = bestScoreText && parseInt(bestScoreText, 10);
+
+  if (!bestScore || this.score > bestScore) {
+    localStorage.setItem('bestScore', this.score);
+  }
+}
+increaseDifficulty() {
+  if (this.score === 1) {
+    this.currentDifficulty = 'normal';
+  }
+
+  if (this.score === 3) {
+    this.currentDifficulty = 'hard';
+  }
 }
 
+}
 export default PlayScene;
