@@ -137,7 +137,7 @@ class PlayScene extends BaseScene {
     this.physics.resume();
   }
   sizeDecrease()
-  {intialBirdSize-=0.05;
+  {intialBirdSize-=0.01;
     this.bird.setScale(intialBirdSize);
     this.physics.resume();
   }
