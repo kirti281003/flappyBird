@@ -4,7 +4,6 @@ class ScoreScene extends BaseScene {
 
   constructor(config) {
     super('ScoreScene',{...config,canGoBack:true});
-
   }
 
   create() {
