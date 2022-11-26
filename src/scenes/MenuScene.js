@@ -19,7 +19,7 @@ class MenuScene extends BaseScene {
   }
 
   preload() {
-    this.load.image('sky', 'assets/sky.png');
+    this.load.image('sky', 'assets/sky1.png');
   }
 
   create() {

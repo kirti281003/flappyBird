@@ -1,6 +1,8 @@
 import BaseScene from "./BaseScene";
 
-const PIPES_TO_RENDER = 4;
+const PIPES_TO_RENDER = 10;
+var intialBirdSize=1;
+
 
 class PlayScene extends BaseScene {
   constructor(config) {
@@ -8,6 +10,8 @@ class PlayScene extends BaseScene {
    
     this.bird = null;
     this.pipes = null;
+    this.burgers=null;
+    this.grasses=null;
     this.pipeHorizontalDistance = 0;
     this.flapVelocity = 300;
 
@@ -40,6 +44,8 @@ class PlayScene extends BaseScene {
     this.createPause();
     this.handleInputs();
     this.listenToEvents();
+    this.createBurgerColliders();
+    this.createGrassColliders();
     
    
 
@@ -50,6 +56,10 @@ class PlayScene extends BaseScene {
   update() {
     this.checkGameStatus();
     this.recyclePipes();
+    this.recycleBurgers();
+    this.recycleGrasses();
+    this.checkgrass();
+    this.checkburger();
   }
   listenToEvents()
   {if(this.pauseEvent){return;}
@@ -77,12 +87,14 @@ class PlayScene extends BaseScene {
     this.add.image(0, 0, 'sky').setOrigin(0);
   }
   createBird() {
-    this.bird = this.physics.add.sprite(this.config.startPosition.x, this.config.startPosition.y, 'bird').setOrigin(0);
+    this.bird = this.physics.add.sprite(this.config.startPosition.x, this.config.startPosition.y, 'bird').setOrigin(0).setScale(intialBirdSize);
     this.bird.body.gravity.y = 600;
     this.bird.setCollideWorldBounds(true);
   }
   createPipes() {
     this.pipes = this.physics.add.group();
+    this.burgers=this.physics.add.group();
+    this.grasses=this.physics.add.group();
     for (let i = 0; i < PIPES_TO_RENDER; i++) {
       const upperPipe = this.pipes.create(0, 0, 'pipe')
         .setImmovable(true)
@@ -90,12 +102,64 @@ class PlayScene extends BaseScene {
       const lowerPipe = this.pipes.create(0, 0, 'pipe')
         .setImmovable(true)
         .setOrigin(0, 0);
-      this.placePipe(upperPipe, lowerPipe)
+      const burger=this.burgers.create(0,0,'burger')
+      .setImmovable(true)
+      .setOrigin(0,0)
+      .setScale(0.35);
+      const grass=this.grasses.create(0,0,'grass')
+      .setImmovable(true)
+      .setOrigin(0,0)
+      .setScale(0.35);
+      this.placePipe(upperPipe, lowerPipe);
+      this.placeBurger(burger);
+      this.placeGrass(grass);
     }
     this.pipes.setVelocityX(-200);
+    this.burgers.setVelocityX(-200);
+    this.grasses.setVelocityX(-200);
   }
   createColliders() {
     this.physics.add.collider(this.bird, this.pipes, this.gameOver, null, this);
+  }
+
+  createBurgerColliders() {
+    this.physics.add.collider(this.bird, this.burgers, this.sizeIncrease, null, this);
+  }
+  createGrassColliders() {
+    this.physics.add.collider(this.bird, this.grasses, this.sizeDecrease, null, this);
+  }
+
+    
+  
+  sizeIncrease()
+  {intialBirdSize+=0.05;
+    this.bird.setScale(intialBirdSize);
+    this.physics.resume();
+  }
+  sizeDecrease()
+  {intialBirdSize-=0.05;
+    this.bird.setScale(intialBirdSize);
+    this.physics.resume();
+  }
+  checkgrass()
+  {   this.grasses.getChildren().forEach(grass=>{
+    if(this.bird.getBounds().right>grass.getBounds().right+5)
+    {
+      grass.setVelocityX(-400);
+    }
+
+  });
+
+  }
+  checkburger()
+  {
+    this.burgers.getChildren().forEach(burger=>{
+      if(this.bird.getBounds().right>burger.getBounds().right+5)
+      {
+        burger.setVelocityX(-400);
+      }
+
+    });
   }
 
   createScore() {
@@ -134,10 +198,35 @@ class PlayScene extends BaseScene {
     uPipe.x = rightMostX + pipeHorizontalDistance;
     uPipe.y = pipeVerticalPosition;
     lPipe.x = uPipe.x;
-    lPipe.y = uPipe.y + pipeVerticalDistance
+    lPipe.y = uPipe.y + pipeVerticalDistance;
+    
+    
   }
-  recyclePipes() {
+  placeBurger(b1)
+  { const difficulty = this.difficulties[this.currentDifficulty];
+    const rightMostX = this.getRightMostPipe();
+    const pipeVerticalDistance = Phaser.Math.Between(...difficulty.pipeVerticalDistanceRange);
+    const burgerHorizontalDistance=Phaser.Math.Between(...difficulty.pipeHorizontalDistanceRange+300);
+    const burgerVerticalDistance=Phaser.Math.Between(...difficulty.pipeVerticalDistanceRange+30);
+    const burgerVerticalPosition=Phaser.Math.Between(0+50,this.config.height-20-burgerVerticalDistance);
+    b1.x=burgerHorizontalDistance+rightMostX+100;
+    b1.y=burgerVerticalPosition-30;
+
+  }
+  placeGrass(g1)
+  { const difficulty = this.difficulties[this.currentDifficulty];
+    const rightMostX = this.getRightMostPipe();
+    const pipeVerticalDistance = Phaser.Math.Between(...difficulty.pipeVerticalDistanceRange);
+    const GrassHorizontalDistance=Phaser.Math.Between(...difficulty.pipeHorizontalDistanceRange+300);
+    const GrassVerticalDistance=Phaser.Math.Between(...difficulty.pipeVerticalDistanceRange+30);
+    const GrassVerticalPosition=Phaser.Math.Between(0+50,this.config.height-30-GrassVerticalDistance);
+    g1.x=GrassHorizontalDistance+rightMostX+150;
+    g1.y=GrassVerticalPosition-10;
+
+  }
+ recyclePipes() {
     const tempPipes = [];
+    
     this.pipes.getChildren().forEach(pipe => {
       if (pipe.getBounds().right <= 0) {
         tempPipes.push(pipe);
@@ -150,6 +239,29 @@ class PlayScene extends BaseScene {
       }
     })
   }
+  recycleBurgers() {
+    const tempBurgers= [];
+    this.burgers.getChildren().forEach(burger => {
+      if (burger.getBounds().right <= 0) {
+        tempBurgers.push(burger);
+        if (tempBurgers.length === 1) {
+          this.placeBurger(...tempBurgers);
+        }
+      }
+    })
+  }
+  recycleGrasses() {
+    const tempGrasses= [];
+    this.grasses.getChildren().forEach(grass => {
+      if (grass.getBounds().right <= 0) {
+        tempGrasses.push(grass);
+        if (tempGrasses.length === 1) {
+          this.placeGrass(...tempGrasses);
+        }
+      }
+    })
+  }
+
   getRightMostPipe() {
     let rightMostX = 0;
     this.pipes.getChildren().forEach(function(pipe) {
@@ -165,6 +277,8 @@ class PlayScene extends BaseScene {
     this.time.addEvent({
       delay: 3000,
       callback: () => {
+        intialBirdSize=1;
+        this.bird.setScale(intialBirdSize);
         this.scene.restart();
       },
       loop: false

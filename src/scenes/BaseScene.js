@@ -11,11 +11,15 @@ class BaseScene extends Phaser.Scene {
     }
   
     preload() {
-      this.load.image('sky', 'assets/sky.png');
+      this.load.image('sky', 'assets/sky1.png');
     }
   
     create() {
-      this.add.image(0, 0, 'sky').setOrigin(0);
+      let image=this.add.image(0, 0, 'sky').setOrigin(0);
+      let scaleX = this.cameras.main.width / image.width
+let scaleY = this.cameras.main.height / image.height
+let scale = Math.max(scaleX, scaleY)
+image.setScale(scale).setScrollFactor(0)
       if (this.config.canGoBack) {
         const backButton = this.add.image(this.config.width - 10, this.config.height -10, 'back')
           .setOrigin(1)
