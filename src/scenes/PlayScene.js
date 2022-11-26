@@ -1,7 +1,7 @@
 import BaseScene from "./BaseScene";
 
 const PIPES_TO_RENDER = 10;
-var intialBirdSize=1;
+var intialBirdSize=0.6;
 
 
 class PlayScene extends BaseScene {
@@ -13,7 +13,7 @@ class PlayScene extends BaseScene {
     this.burgers=null;
     this.grasses=null;
     this.pipeHorizontalDistance = 0;
-    this.flapVelocity = 300;
+    this.flapVelocity = 350;
 
     this.score = 0;
     this.scoreText = '';
@@ -87,7 +87,7 @@ class PlayScene extends BaseScene {
     this.add.image(0, 0, 'sky').setOrigin(0);
   }
   createBird() {
-    this.bird = this.physics.add.sprite(this.config.startPosition.x, this.config.startPosition.y, 'bird').setOrigin(0).setScale(intialBirdSize);
+    this.bird = this.physics.add.sprite(this.config.startPosition.x, this.config.startPosition.y, 'bird').setOrigin(0).setScale(intialBirdSize).setImmovable(true);
     this.bird.body.gravity.y = 600;
     this.bird.setCollideWorldBounds(true);
   }
@@ -143,7 +143,7 @@ class PlayScene extends BaseScene {
   }
   checkgrass()
   {   this.grasses.getChildren().forEach(grass=>{
-    if(this.bird.getBounds().right>grass.getBounds().right+5)
+    if(this.bird.getBounds().right>grass.getBounds().left)
     {
       grass.setVelocityX(-400);
     }
@@ -154,7 +154,7 @@ class PlayScene extends BaseScene {
   checkburger()
   {
     this.burgers.getChildren().forEach(burger=>{
-      if(this.bird.getBounds().right>burger.getBounds().right+5)
+      if(this.bird.getBounds().right>burger.getBounds().left)
       {
         burger.setVelocityX(-400);
       }
@@ -277,7 +277,7 @@ class PlayScene extends BaseScene {
     this.time.addEvent({
       delay: 3000,
       callback: () => {
-        intialBirdSize=1;
+        intialBirdSize=0.6;
         this.bird.setScale(intialBirdSize);
         this.scene.restart();
       },
